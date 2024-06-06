@@ -40,7 +40,7 @@ const SellersManagement = ({ setRemovedSellers }) => {
       const staticReportedSellers = [
         { id: 1, name: 'mouhamed', email: 'seller1@example.com', products: 10, sales: 100 },
         { id: 2, name: 'Seller Two', email: 'seller2@example.com', products: 5, sales: 50 },
-        { id: 3, name: 'Seller Thsdsdree', email: 'sellersd3@example.com', products: 20, sales: 200 },
+        { id: 3, name: 'Seller Three', email: 'seller3@example.com', products: 20, sales: 200 },
       ];
       localStorage.setItem('reportedSellers', JSON.stringify(staticReportedSellers));
       setReportedSellers(staticReportedSellers);
@@ -50,33 +50,19 @@ const SellersManagement = ({ setRemovedSellers }) => {
   }, []);
 
   useEffect(() => {
-    const fetchUpgradeRequests = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/requests', {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
-          },
-        });
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        const data = await response.json();
-        setUpgradeRequests(data.users);
-      } catch (error) {
-        console.error('Error fetching upgrade requests:', error);
-        toast({
-          title: 'Error fetching upgrade requests',
-          description: error.message,
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
-      }
-    };
-
-    fetchUpgradeRequests();
-  }, [toast]);
+    const storedUpgradeRequests = JSON.parse(localStorage.getItem('upgradeRequests')) || [];
+    if (storedUpgradeRequests.length === 0) {
+      const staticUpgradeRequests = [
+        { id: 1, name: 'ami mouh', email: 'amimouh@example.com' },
+        { id: 2, name: 'amin', email: 'amin@example.com' },
+        { id: 3, name: 'test1', email: 'test1@example.com' },
+      ];
+      localStorage.setItem('upgradeRequests', JSON.stringify(staticUpgradeRequests));
+      setUpgradeRequests(staticUpgradeRequests);
+    } else {
+      setUpgradeRequests(storedUpgradeRequests);
+    }
+  }, []);
 
   const handleRemoveSeller = (sellerId) => {
     const removedSeller = reportedSellers.find((seller) => seller.id === sellerId);
@@ -100,33 +86,34 @@ const SellersManagement = ({ setRemovedSellers }) => {
     }
   };
 
-  const handleAcceptSellerRequest = async (userId) => {
-    try {
-      const response = await fetch(`http://localhost:5000/account/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      const data = await response.json();
-      setUpgradeRequests((prev) => prev.filter((request) => request._id !== userId));
+  const handleAcceptSellerRequest = (userId) => {
+    const acceptedRequest = upgradeRequests.find((request) => request.id === userId);
+    if (acceptedRequest) {
+      const updatedUpgradeRequests = upgradeRequests.filter((request) => request.id !== userId);
+      localStorage.setItem('upgradeRequests', JSON.stringify(updatedUpgradeRequests));
+      setUpgradeRequests(updatedUpgradeRequests);
+
       toast({
         title: 'Seller Request Accepted',
-        description: data.message,
+        description: `${acceptedRequest.name} has been upgraded to seller.`,
         status: 'success',
         duration: 3000,
         isClosable: true,
       });
-    } catch (error) {
-      console.error('Error upgrading user to seller:', error);
+    }
+  };
+
+  const handleRefuseSellerRequest = (userId) => {
+    const refusedRequest = upgradeRequests.find((request) => request.id === userId);
+    if (refusedRequest) {
+      const updatedUpgradeRequests = upgradeRequests.filter((request) => request.id !== userId);
+      localStorage.setItem('upgradeRequests', JSON.stringify(updatedUpgradeRequests));
+      setUpgradeRequests(updatedUpgradeRequests);
+
       toast({
-        title: 'Error',
-        description: 'There was an error upgrading the user to a seller.',
-        status: 'error',
+        title: 'Seller Request Refused',
+        description: `${refusedRequest.name}'s request has been refused.`,
+        status: 'info',
         duration: 3000,
         isClosable: true,
       });
@@ -149,11 +136,12 @@ const SellersManagement = ({ setRemovedSellers }) => {
           </Thead>
           <Tbody>
             {upgradeRequests.map((request) => (
-              <Tr key={request._id}>
+              <Tr key={request.id}>
                 <Td>{request.name}</Td>
                 <Td>{request.email}</Td>
                 <Td>
-                  <Button colorScheme="green" size="sm" onClick={() => handleAcceptSellerRequest(request._id)}>Accept</Button>
+                  <Button colorScheme="green" size="sm" onClick={() => handleAcceptSellerRequest(request.id)}>Accept</Button>
+                  <Button colorScheme="red" size="sm" ml={2} onClick={() => handleRefuseSellerRequest(request.id)}>Refuse</Button>
                 </Td>
               </Tr>
             ))}
